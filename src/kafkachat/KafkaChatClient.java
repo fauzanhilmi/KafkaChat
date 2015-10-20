@@ -59,6 +59,18 @@ public class KafkaChatClient {
         cc = Consumer.createJavaConsumerConnector(consumerConfig);
     }
 
+    public String leave(String channelName) {
+        String message = "";
+        if(ChannelMap.containsKey(channelName)) {
+            ChannelMap.get(channelName).shutdown();
+            ChannelMap.remove(channelName);
+            message = user.getName() + " left channel " + channelName;
+        }
+        else {
+            message = "You're not in channel "+channelName+"!";
+        }
+        return message;
+    }
             
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
@@ -88,9 +100,16 @@ public class KafkaChatClient {
                 ChannelMap.put(channelName,new ChannelListener(user.getName(),channelName));
                 String message = user.getName() + " has joined channel " + channelName;
                 System.out.println(message);
+            } else if (command.length() >= 6 && command.substring(0, 6).equals("/LEAVE")) {
+                if (command.charAt(6) == ' ' && command.length() >= 8) {
+                    String channelName = command.substring(command.indexOf(" ")+1);
+                    String message = kc.leave(channelName);
+                    System.out.println(message);
+                }
             }
             command = sc.nextLine();
-        }
+        } 
+        
         
         for(ChannelListener channel : ChannelMap.values()) {
             channel.shutdown();
