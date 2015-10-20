@@ -110,10 +110,44 @@ public class KafkaChatClient {
         Scanner sc = new Scanner(System.in);
         KafkaChatClient kc = new KafkaChatClient();
 
+        System.out.println("Welcome to KafkaChat!");
+        System.out.println("Use command '/NICK <Username>' to begin. Empty <username> if you want random nickname");
+        System.out.println("Use command '/EXIT' to exit the program");
         String command = sc.nextLine();
+        while(command.length() < 5 || !command.substring(0, 5).equals("/NICK")) {
+            if(command.equals("/EXIT")) {
+                System.out.println("Thank you for using KafkaChat!");
+                return;
+            }
+            else {
+                System.out.println("Command is not recognized");
+            }
+            command = sc.nextLine();
+        }
+        
+        String name = "";
+        if (command.length() <= 6) { //default username
+            int rndIdx = new Random().nextInt((defaultUsernames.size() - 0));
+            name = defaultUsernames.get(rndIdx);
+        } else if (command.charAt(5) == ' ' && command.length() >= 7) {
+            name = command.substring(6);
+            name = name.trim(); //remove trailing whitespace
+        }
+
+        kc = new KafkaChatClient(name);
+        System.out.println("You are logged in as "+name);
+        System.out.println("Avaliable commands: ");
+        System.out.println(" 1. /NICK <Username>            : Change username ");
+        System.out.println(" 2. /JOIN <Channel Name>        : Join a channel");
+        System.out.println(" 3. @<Channel Name> <Message>   : Send message to a channel");
+        System.out.println(" 4. /LEAVE <Channel Name>       : Leave channel");
+        System.out.println(" 5. <Random text>               : Send message to all channel");
+        System.out.println(" 6. /EXIT                       : Exit program");
+
+        command = sc.nextLine();
         while (!command.equals("/EXIT")) {
             if (command.length() >= 5 && command.substring(0, 5).equals("/NICK")) {
-                String name = "";
+                name = "";
                 if (command.length() <= 6) { //default username
                     int rndIdx = new Random().nextInt((defaultUsernames.size() - 0));
                     name = defaultUsernames.get(rndIdx);
@@ -121,9 +155,8 @@ public class KafkaChatClient {
                     name = command.substring(6);
                     name = name.trim(); //remove trailing whitespace
                 }
-                String message = name + " has joined";
                 kc = new KafkaChatClient(name);
-                System.out.println(message);
+                System.out.println("You are logged in as "+name);
             } else if (command.length() >= 5 && command.substring(0, 5).equals("/JOIN")) {
                 String channelName = "";
                 if (command.length() <= 6) { //default username
@@ -155,6 +188,8 @@ public class KafkaChatClient {
         for(ChannelListener channel : ChannelMap.values()) {
             channel.shutdown();
         }
+        
+        System.out.println("Thank you for using KafkaChat!");
     }
     
 }
