@@ -6,6 +6,7 @@
 
 package kafkachat;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import kafka.javaapi.producer.Producer;
 import kafka.producer.ProducerConfig;
 import kafka.javaapi.message.ByteBufferMessageSet;
 import kafka.message.Message;
+import kafka.producer.KeyedMessage;
 import kafka.producer.SyncProducerConfig;
 /**
  *
@@ -34,7 +36,7 @@ public class KafkaChatClient {
 //    private final static String QUEUE_NAME = "hello";
 //    private final static String NOTIFICATIONS_EX_NAME = "log";
     private static User user;
-    private static ConsumerConnector cc;
+    private static ProducerConfig pc;
     
     private static Hashtable<String, ChannelListener> source = new Hashtable<String,ChannelListener>(); 
     private static HashMap<String, ChannelListener> ChannelMap = new HashMap(source);
@@ -50,16 +52,23 @@ public class KafkaChatClient {
         Properties ProducerProperties = new Properties();
         ProducerProperties.put("metadata.broker.list","localhost:9092");
         ProducerProperties.put("serializer.class","kafka.serializer.StringEncoder");
-        ProducerConfig producerConfig = new ProducerConfig(ProducerProperties);
-        
-        Properties ConsumerProperties = new Properties();
-        ConsumerProperties.put("zookeeper.connect","localhost:2181");
-        ConsumerProperties.put("group.id",Username);
-        ConsumerConfig consumerConfig = new ConsumerConfig(ConsumerProperties);
-        cc = Consumer.createJavaConsumerConnector(consumerConfig);
+        pc = new ProducerConfig(ProducerProperties);
+//        
+//        Properties ConsumerProperties = new Properties();
+//        ConsumerProperties.put("zookeeper.connect","localhost:2181");
+//        ConsumerProperties.put("group.id",Username);
+//        ConsumerConfig consumerConfig = new ConsumerConfig(ConsumerProperties);
+//        cc = Consumer.createJavaConsumerConnector(consumerConfig);
     }
 
-    public String leave(String channelName) {
+    public void join(String username,String channelName) {
+        ChannelMap.put(channelName,new ChannelListener(username,channelName));
+        ChannelMap.get(channelName).start();
+        String message = username + " has joined channel " + channelName;
+        System.out.println(message);
+    }
+    
+    public void leave(String channelName) {
         String message = "";
         if(ChannelMap.containsKey(channelName)) {
             ChannelMap.get(channelName).shutdown();
@@ -67,9 +76,23 @@ public class KafkaChatClient {
             message = user.getName() + " left channel " + channelName;
         }
         else {
-            message = "You're not in channel "+channelName+"!";
+            message = "You're not in channel "+channelName;
         }
-        return message;
+        System.out.println(message);
+    }
+    
+    public void send(String message, String channelName) {
+        if(ChannelMap.containsKey(channelName)) {
+            String msg = "[" + channelName + "] " + "(" + user.getName() + ") " + message;
+            kafka.javaapi.producer.Producer<String,String> producer = new kafka.javaapi.producer.Producer<String, String>(pc);
+            SimpleDateFormat sdf = new SimpleDateFormat();
+            KeyedMessage<String, String> km =new KeyedMessage<String, String>(channelName,msg);
+            producer.send(km);
+            producer.close();
+        }
+        else {
+            System.out.println("You're not in channel "+channelName);
+        }
     }
             
     public static void main(String[] args) {
@@ -97,15 +120,24 @@ public class KafkaChatClient {
                 } else {
                     channelName = command.substring(command.indexOf(" ")+1);
                 }
-                ChannelMap.put(channelName,new ChannelListener(user.getName(),channelName));
-                String message = user.getName() + " has joined channel " + channelName;
-                System.out.println(message);
+                kc.join(user.getName(),channelName);
+//                ChannelMap.put(channelName,new ChannelListener(user.getName(),channelName));
+//                String message = user.getName() + " has joined channel " + channelName;
+//                System.out.println(message);
             } else if (command.length() >= 6 && command.substring(0, 6).equals("/LEAVE")) {
                 if (command.charAt(6) == ' ' && command.length() >= 8) {
                     String channelName = command.substring(command.indexOf(" ")+1);
-                    String message = kc.leave(channelName);
-                    System.out.println(message);
+                    kc.leave(channelName);
                 }
+            } else if (command.length() >= 4 && command.charAt(0) == ('@')) {
+                if (command.contains(" ")) {
+                    String channelname = command.substring(1, command.indexOf(' '));
+                    String message = command.substring(command.indexOf(' ') + 1, command.length());
+                    kc.send(message, channelname);
+                } else {
+                    System.out.println("You didn't type the message");
+                }
+
             }
             command = sc.nextLine();
         } 

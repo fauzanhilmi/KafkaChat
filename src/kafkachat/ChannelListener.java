@@ -45,7 +45,6 @@ public class ChannelListener extends Thread{
         ConsumerIterator<byte[], byte[]> it = stream.iterator();
         while(it.hasNext())
             System.out.println(new String(it.next().message()));
-
     }
     
     private static void printMessages(ByteBufferMessageSet messageSet) throws UnsupportedEncodingException {
@@ -60,11 +59,4 @@ public class ChannelListener extends Thread{
     public void shutdown() {
         cc.shutdown();
     }
-    
-    public static void main(String[] argv) throws UnsupportedEncodingException {
-        ChannelListener cl = new ChannelListener("tes", "tus");
-        cl.start();
-    }
-    
-    
 }
