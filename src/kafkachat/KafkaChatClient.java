@@ -86,13 +86,24 @@ public class KafkaChatClient {
             String msg = "[" + channelName + "] " + "(" + user.getName() + ") " + message;
             kafka.javaapi.producer.Producer<String,String> producer = new kafka.javaapi.producer.Producer<String, String>(pc);
             SimpleDateFormat sdf = new SimpleDateFormat();
-            KeyedMessage<String, String> km =new KeyedMessage<String, String>(channelName,msg);
+            KeyedMessage<String, String> km = new KeyedMessage<String, String>(channelName,msg);
             producer.send(km);
             producer.close();
         }
         else {
             System.out.println("You're not in channel "+channelName);
         }
+    }
+    
+    public void broadcast(String username, String message) {
+        kafka.javaapi.producer.Producer<String,String> producer = new kafka.javaapi.producer.Producer<String, String>(pc);
+        for(String channelName : ChannelMap.keySet()) {
+            String msg = "[" + channelName + "] " + "(" + username + ") " + message;
+            SimpleDateFormat sdf = new SimpleDateFormat();
+            KeyedMessage<String, String> km = new KeyedMessage<String, String>(channelName,msg);
+            producer.send(km);            
+        }
+        producer.close();
     }
             
     public static void main(String[] args) {
@@ -121,9 +132,6 @@ public class KafkaChatClient {
                     channelName = command.substring(command.indexOf(" ")+1);
                 }
                 kc.join(user.getName(),channelName);
-//                ChannelMap.put(channelName,new ChannelListener(user.getName(),channelName));
-//                String message = user.getName() + " has joined channel " + channelName;
-//                System.out.println(message);
             } else if (command.length() >= 6 && command.substring(0, 6).equals("/LEAVE")) {
                 if (command.charAt(6) == ' ' && command.length() >= 8) {
                     String channelName = command.substring(command.indexOf(" ")+1);
@@ -137,26 +145,16 @@ public class KafkaChatClient {
                 } else {
                     System.out.println("You didn't type the message");
                 }
-
+            }
+            else {
+                kc.broadcast(user.getName(),command);
             }
             command = sc.nextLine();
-        } 
-        
+        }
         
         for(ChannelListener channel : ChannelMap.values()) {
             channel.shutdown();
         }
-        
-//        Properties props = new Properties();
-//        props.put("zk.connect","127.0.0.1:2181");
-//        props.put("serializer.class","kafka.serializer.StringEncoder");
-//        ProducerConfig config = new ProducerConfig(props);
-//        Producer<String, String> producer = new Producer<String, String>(config);
-//        
-//        ProducerData<String, String> data = new ProducerData<String, String>("test-topic", "test-message");
-//        producer.send(data);	
-//                
-
     }
     
 }
